@@ -12,7 +12,7 @@ const apiTokenInput = document.getElementById('api-token');
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
-    // Load the TSV file (Papa Parse 활성화)
+    // Load the TSV file
     loadReviews();
     
     // Set up event listeners
@@ -67,7 +67,7 @@ function saveApiToken() {
 }
 
 // Analyze a random review
-function analyzeRandomReview() {
+async function analyzeRandomReview() {
     hideError();
     
     if (reviews.length === 0) {
@@ -83,9 +83,9 @@ function analyzeRandomReview() {
     // Show loading state
     loadingElement.style.display = 'block';
     analyzeBtn.disabled = true;
-    sentimentResult.innerHTML = '';  // Reset previous result
-    sentimentResult.className = 'sentiment-result';  // Reset classes
-
+    sentimentResult.innerHTML = '';
+    sentimentResult.className = 'sentiment-result';
+    
     try {
         const result = await analyzeSentiment(selectedReview);
         displaySentiment(result);
@@ -103,7 +103,7 @@ function analyzeRandomReview() {
         loadingElement.style.display = 'none';
         analyzeBtn.disabled = false;
     }
-
+}
 
 // Call Hugging Face API for sentiment analysis
 async function analyzeSentiment(text) {
@@ -140,12 +140,11 @@ async function analyzeSentiment(text) {
 
 // Display sentiment result
 function displaySentiment(result) {
-    // Default to neutral if we can't parse the result
     let sentiment = 'neutral';
     let score = 0.5;
     let label = 'NEUTRAL';
     
-    // Parse the API response (format: [[{label: 'POSITIVE', score: 0.99}]])
+    // Parse the API response
     if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0]) && result[0].length > 0) {
         const sentimentData = result[0][0];
         label = sentimentData.label?.toUpperCase() || 'NEUTRAL';
