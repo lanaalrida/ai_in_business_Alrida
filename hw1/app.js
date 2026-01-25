@@ -93,12 +93,6 @@ async function analyzeRandomReview() {
         console.error('Error:', error);
         showError('Failed to analyze sentiment: ' + error.message);
         
-        // Fallback: Simulate API response for demo
-        const mockResult = [[{
-            label: Math.random() > 0.5 ? 'POSITIVE' : 'NEGATIVE',
-            score: 0.7 + Math.random() * 0.3
-        }]];
-        displaySentiment(mockResult);
     } finally {
         loadingElement.style.display = 'none';
         analyzeBtn.disabled = false;
