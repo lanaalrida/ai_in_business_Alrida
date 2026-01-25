@@ -93,12 +93,6 @@ async function analyzeRandomReview() {
         console.error('Error:', error);
         showError('Failed to analyze sentiment: ' + error.message);
         
-        // Fallback: Simulate API response for demo
-        const mockResult = [[{
-            label: Math.random() > 0.5 ? 'POSITIVE' : 'NEGATIVE',
-            score: 0.7 + Math.random() * 0.3
-        }]];
-        displaySentiment(mockResult);
     } finally {
         loadingElement.style.display = 'none';
         analyzeBtn.disabled = false;
@@ -107,14 +101,15 @@ async function analyzeRandomReview() {
 
 // Call Hugging Face API for sentiment analysis using a model that supports CORS
 async function analyzeSentiment(text) {
-    // Using a different model that has CORS enabled
-    // This model is specifically designed for web use
-    const modelEndpoint = 'https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english';
+    // Use a CORS proxy for development (free tier)
+    const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+    const apiUrl = 'https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english';
     
-    const response = await fetch(modelEndpoint, {
+    const response = await fetch(proxyUrl + apiUrl, {
         headers: { 
             'Authorization': apiToken ? `Bearer ${apiToken}` : undefined,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
         },
         method: 'POST',
         body: JSON.stringify({ inputs: text }),
