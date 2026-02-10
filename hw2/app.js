@@ -7,6 +7,9 @@ let reviews = [];
 let apiToken = ""; // kept for UI compatibility, but not used with local inference
 let sentimentPipeline = null; // transformers.js text-classification pipeline
 
+// Google Apps Script URL for logging
+const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyMxWeRoRh2f1w153NAQKyzeK0uv8wd37nhjJFFYRLLmcqGtzzlTv7A-hAUJIiOpZIs/exec";
+
 // DOM elements
 const analyzeBtn = document.getElementById("analyze-btn");
 const reviewText = document.getElementById("review-text");
@@ -218,6 +221,68 @@ function getSentimentIcon(sentiment) {
       return "fa-question-circle";
   }
 }
+// Log analysis to Google Sheets
+async function logToGoogleSheets(review, sentimentResult) {
+  try {
+    // Extract sentiment data
+    let sentiment = "neutral";
+    let score = 0.5;
+    let label = "NEUTRAL";
+
+    if (
+      Array.isArray(sentimentResult) &&
+      sentimentResult.length > 0 &&
+      Array.isArray(sentimentResult[0]) &&
+      sentimentResult[0].length > 0
+    ) {
+      const sentimentData = sentimentResult[0][0];
+      if (sentimentData && typeof sentimentData === "object") {
+        label = sentimentData.label ? sentimentData.label.toUpperCase() : "NEUTRAL";
+        score = sentimentData.score || 0.5;
+        
+        if (label === "POSITIVE" && score > 0.5) {
+          sentiment = "positive";
+        } else if (label === "NEGATIVE" && score > 0.5) {
+          sentiment = "negative";
+        } else {
+          sentiment = "neutral";
+        }
+      }
+    }
+
+    // Prepare data for logging
+    const logData = {
+      ts: Date.now(), // timestamp in milliseconds
+      review: review.substring(0, 5000), // Truncate review to avoid URL length limits
+      sentiment: `${label} (${(score * 100).toFixed(1)}% confidence)`,
+      meta: JSON.stringify({
+        model: "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
+        sentiment_bucket: sentiment,
+        confidence_score: score,
+        user_agent: navigator.userAgent,
+        timestamp_iso: new Date().toISOString()
+      })
+    };
+
+    // Send data to Google Sheets via Apps Script
+    const response = await fetch(GOOGLE_SHEETS_URL, {
+      method: "POST",
+      mode: "no-cors", // Important for Google Apps Script
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams(logData).toString()
+    });
+
+    // Note: With no-cors mode, we can't read the response, but that's okay for logging
+    console.log("Logged analysis to Google Sheets:", logData);
+    
+  } catch (error) {
+    console.error("Failed to log to Google Sheets:", error);
+    // Don't show error to user - logging failure shouldn't break the app
+  }
+}
+
 
 // Show error message
 function showError(message) {
