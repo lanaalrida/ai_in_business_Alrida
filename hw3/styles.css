@@ -1,0 +1,194 @@
+/* ===== BUSINESS ACTION DECISION ===== */
+.action-section {
+    margin-top: 30px;
+    animation: fadeIn 0.5s ease;
+}
+
+.action-result {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 24px;
+    border-radius: 16px;
+    margin-top: 20px;
+    background: white;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Animated gradient accent line */
+.action-result::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 6px;
+    background: currentColor;
+    opacity: 0.7;
+}
+
+/* Coupon style */
+.action-result.coupon {
+    background: linear-gradient(145deg, #fff8f8, #fff0f0);
+    color: #c53030;
+}
+.action-result.coupon::before { background: #e53e3e; }
+
+/* Feedback style */
+.action-result.feedback {
+    background: linear-gradient(145deg, #f7fafc, #edf2f7);
+    color: #2d3748;
+}
+.action-result.feedback::before { background: #718096; }
+
+/* Referral style */
+.action-result.referral {
+    background: linear-gradient(145deg, #ebf8ff, #e6f0fa);
+    color: #2c5282;
+}
+.action-result.referral::before { background: #4299e1; }
+
+.action-icon {
+    font-size: 36px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 50%;
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    color: inherit;
+    flex-shrink: 0;
+}
+
+.action-content {
+    flex: 1;
+}
+
+.action-content h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-message {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #4a5568;
+    font-weight: 500;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.action-button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 40px;  /* Pill shape */
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    color: #1a202c;
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.action-button i {
+    font-size: 1rem;
+}
+
+.action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    border-color: transparent;
+}
+
+/* Specific button variants */
+.coupon-button {
+    background: #e53e3e;
+    color: white;
+    border: none;
+}
+.coupon-button:hover {
+    background: #c53030;
+    box-shadow: 0 8px 16px rgba(229, 62, 62, 0.3);
+}
+
+.feedback-button {
+    background: #4a5568;
+    color: white;
+    border: none;
+}
+.feedback-button:hover {
+    background: #2d3748;
+    box-shadow: 0 8px 16px rgba(74, 85, 104, 0.3);
+}
+
+.referral-button {
+    background: #3182ce;
+    color: white;
+    border: none;
+}
+.referral-button:hover {
+    background: #2c5282;
+    box-shadow: 0 8px 16px rgba(49, 130, 206, 0.3);
+}
+
+/* Secondary buttons (Contact Support, Schedule Call, etc.) */
+.action-button:not(.coupon-button):not(.feedback-button):not(.referral-button) {
+    background: white;
+    color: #2d3748;
+    border: 1px solid #e2e8f0;
+}
+.action-button:not(.coupon-button):not(.feedback-button):not(.referral-button):hover {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .action-result {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+    .action-icon {
+        align-self: center;
+    }
+    .action-buttons {
+        justify-content: stretch;
+    }
+    .action-button {
+        flex: 1;
+        justify-content: center;
+    }
+}
