@@ -121,7 +121,7 @@ function displayBusinessAction(action) {
   // Update heading
   const headingEl = actionResult.querySelector('h3');
   if (headingEl) {
-    headingEl.textContent = `System Decision: ${action.actionCode}`;
+    headingEl.textContent = `System Decision:`;
     headingEl.style.color = action.uiColor;
   }
 
@@ -138,7 +138,7 @@ function displayBusinessAction(action) {
     `;
   } else if (action.actionCode === "REQUEST_FEEDBACK") {
     actionButtons.innerHTML = `
-      <a href="https://forms.gle/examplefeedbackform" target="_blank" class="action-button feedback-button">
+      <a href="https://forms.gle/g1KwfQmetxRGoHQy6" target="_blank" class="action-button feedback-button">
         <i class="fas fa-edit"></i> Complete Survey
       </a>
       <button class="action-button" style="background:#4a5568; color:white;" onclick="window.scheduleCall()">
