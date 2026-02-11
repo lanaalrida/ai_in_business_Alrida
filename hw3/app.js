@@ -1,9 +1,13 @@
-// app.js - Sentiment Analysis with GAS Logging (CORS-safe pattern)
+// app.js - Sentiment Analysis with Business Logic & GAS Logging
+// Preserves your existing structure – only adds:
+// - determineBusinessAction(score, label)
+// - displayBusinessAction(action)
+// - action_taken field in logging
 
 import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6/dist/transformers.min.js";
 
 // Constants
-const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyMxWeRoRh2f1w153NAQKyzeK0uv8wd37nhjJFFYRLLmcqGtzzlTv7A-hAUJIiOpZIs/exec";
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxe8UyJXOFRTSadcCOvOVjaFMpLKnb9wHLc9QqapiR08clgfWui14EixT_sRthslZxT/exec";
 const LS_KEY_UID = "sa_uid";
 
 // Global variables
@@ -17,7 +21,11 @@ const sentimentResult = document.getElementById("sentiment-result");
 const loadingElement = document.querySelector(".loading");
 const errorElement = document.getElementById("error-message");
 const statusElement = document.getElementById("status");
-const apiTokenInput = document.getElementById("api-token"); // For UI compatibility only
+const apiTokenInput = document.getElementById("api-token"); // UI compatibility
+
+// NEW: DOM elements for business action
+const actionResult = document.getElementById("action-result");
+const actionButtons = document.getElementById("action-buttons");
 
 /** Get or create a stable pseudo user id. */
 function getUserId() {
@@ -37,46 +45,169 @@ function updateStatus(message, type = "info") {
   }
 }
 
+/* ----------------------------------------------------------------------
+   BUSINESS LOGIC – single function as per assignment
+---------------------------------------------------------------------- */
+/**
+ * Determines the appropriate business action based on sentiment analysis.
+ * @param {number} confidence - Confidence score (0.0 to 1.0)
+ * @param {string} label - Model label (e.g., "POSITIVE", "NEGATIVE")
+ * @returns {object} Action metadata: code, message, color, icon, cssClass
+ */
+function determineBusinessAction(confidence, label) {
+  // Normalize to 0 (worst) – 1 (best)
+  let normalizedScore;
+  if (label === "POSITIVE") {
+    normalizedScore = confidence;
+  } else if (label === "NEGATIVE") {
+    normalizedScore = 1.0 - confidence;
+  } else {
+    // Fallback for any other label (should not happen with SST-2)
+    normalizedScore = 0.5;
+  }
+
+  // Apply thresholds
+  if (normalizedScore <= 0.4) {
+    return {
+      actionCode: "OFFER_COUPON",
+      uiMessage: "We are truly sorry for your negative experience. Please accept this 50% discount coupon.",
+      uiColor: "#dc3545",
+      icon: "fa-fire",
+      cssClass: "coupon"
+    };
+  } else if (normalizedScore < 0.7) {
+    return {
+      actionCode: "REQUEST_FEEDBACK",
+      uiMessage: "Thank you for your feedback! Could you tell us how we can improve?",
+      uiColor: "#6b7280",
+      icon: "fa-clipboard-question",
+      cssClass: "feedback"
+    };
+  } else {
+    return {
+      actionCode: "ASK_REFERRAL",
+      uiMessage: "We're thrilled you enjoyed your experience! Refer a friend and both of you will earn rewards.",
+      uiColor: "#3b82f6",
+      icon: "fa-user-friends",
+      cssClass: "referral"
+    };
+  }
+}
+
+/**
+ * Update the UI with the selected business action.
+ */
+function displayBusinessAction(action) {
+  if (!actionResult || !actionButtons) return;
+
+  // Reset and set new class
+  actionResult.className = "action-result";
+  actionResult.classList.add(action.cssClass);
+
+  // Update icon
+  const iconEl = actionResult.querySelector('.action-icon');
+  if (iconEl) {
+    iconEl.className = `fas ${action.icon} action-icon`;
+    iconEl.style.color = action.uiColor;
+  }
+
+  // Update message
+  const msgEl = actionResult.querySelector('.action-message');
+  if (msgEl) {
+    msgEl.textContent = action.uiMessage;
+    msgEl.style.color = action.uiColor;
+  }
+
+  // Update heading
+  const headingEl = actionResult.querySelector('h3');
+  if (headingEl) {
+    headingEl.textContent = `System Decision: ${action.actionCode}`;
+    headingEl.style.color = action.uiColor;
+  }
+
+  // Generate action buttons
+  actionButtons.innerHTML = '';
+  if (action.actionCode === "OFFER_COUPON") {
+    actionButtons.innerHTML = `
+      <button class="action-button coupon-button" onclick="window.generateCoupon()">
+        <i class="fas fa-tag"></i> Generate 50% Off Coupon
+      </button>
+      <button class="action-button" style="background:#718096; color:white;" onclick="window.contactSupport()">
+        <i class="fas fa-headset"></i> Contact Support
+      </button>
+    `;
+  } else if (action.actionCode === "REQUEST_FEEDBACK") {
+    actionButtons.innerHTML = `
+      <a href="https://forms.gle/examplefeedbackform" target="_blank" class="action-button feedback-button">
+        <i class="fas fa-edit"></i> Complete Survey
+      </a>
+      <button class="action-button" style="background:#4a5568; color:white;" onclick="window.scheduleCall()">
+        <i class="fas fa-phone"></i> Schedule Call
+      </button>
+    `;
+  } else if (action.actionCode === "ASK_REFERRAL") {
+    actionButtons.innerHTML = `
+      <button class="action-button referral-button" onclick="window.shareReferral()">
+        <i class="fas fa-share-alt"></i> Share Referral Link
+      </button>
+      <button class="action-button" style="background:#2b6cb0; color:white;" onclick="window.writeTestimonial()">
+        <i class="fas fa-star"></i> Write Testimonial
+      </button>
+    `;
+  }
+}
+
+// ----------------------------------------------------------------------
+// Action button handlers (exposed globally for onclick)
+window.generateCoupon = function() {
+  const code = "SAVE50-" + Math.random().toString(36).substring(2,8).toUpperCase();
+  alert(`Your 50% discount coupon: ${code}\nValid for 30 days.`);
+};
+window.contactSupport = function() {
+  alert("Our support team will contact you within 24 hours.");
+};
+window.scheduleCall = function() {
+  alert("Please check your email for scheduling options.");
+};
+window.shareReferral = function() {
+  const link = "https://example.com/ref/" + getUserId().substring(0,8);
+  alert(`Share this link with friends: ${link}\nYou both get 20% off!`);
+};
+window.writeTestimonial = function() {
+  window.open("https://example.com/testimonial-form", "_blank");
+};
+// ----------------------------------------------------------------------
+
 /**
  * Send one analysis event as a CORS simple request (no preflight).
- * Payload fields are flattened into form data.
+ * Now includes 'action_taken' field.
  */
 async function sendLogSimple(payload) {
-  // Prepare form data (CORS-safe, no custom headers)
   const form = new URLSearchParams();
   form.set("ts", String(payload.ts || Date.now()));
   form.set("review", String(payload.review || "").substring(0, 5000));
   form.set("sentiment", String(payload.sentiment || ""));
+  form.set("action_taken", String(payload.action_taken || ""));  // NEW COLUMN
   form.set("meta", JSON.stringify(payload.meta || {}));
 
   try {
     const res = await fetch(GAS_WEB_APP_URL, {
       method: "POST",
-      body: form // application/x-www-form-urlencoded; no headers to avoid preflight
+      body: form
     });
-    
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-    }
-    
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
     console.log("Logged to Google Sheets successfully");
     return { success: true };
   } catch (err) {
     console.error("Google Sheets logging failed:", err);
-    // Silent fail - don't show error to user since logging is secondary
     return { success: false, error: String(err) };
   }
 }
 
 // Initialize the app
 document.addEventListener("DOMContentLoaded", function () {
-  // Load the TSV file
   loadReviews();
-
-  // Set up event listener for analyze button
   analyzeBtn.addEventListener("click", analyzeRandomReview);
-
-  // Initialize transformers.js sentiment model
   initSentimentModel();
 });
 
@@ -84,12 +215,10 @@ document.addEventListener("DOMContentLoaded", function () {
 async function initSentimentModel() {
   try {
     updateStatus("Loading sentiment model...", "info");
-    
     sentimentPipeline = await pipeline(
       "text-classification",
       "Xenova/distilbert-base-uncased-finetuned-sst-2-english"
     );
-    
     updateStatus("Sentiment model ready", "success");
   } catch (error) {
     console.error("Failed to load sentiment model:", error);
@@ -102,9 +231,7 @@ async function initSentimentModel() {
 function loadReviews() {
   fetch("reviews_test.tsv")
     .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to load TSV file");
-      }
+      if (!response.ok) throw new Error("Failed to load TSV file");
       return response.text();
     })
     .then((tsvData) => {
@@ -155,17 +282,31 @@ async function analyzeRandomReview() {
   sentimentResult.innerHTML = "";
   sentimentResult.className = "sentiment-result";
 
+  // Reset action UI
+  if (actionResult) {
+    actionResult.className = "action-result";
+    const iconEl = actionResult.querySelector('.action-icon');
+    if (iconEl) iconEl.className = "fas fa-spinner fa-spin action-icon";
+    const msgEl = actionResult.querySelector('.action-message');
+    if (msgEl) msgEl.textContent = "Analyzing and determining action...";
+  }
+
   try {
     // Analyze sentiment
     const result = await analyzeSentiment(selectedReview);
-    const { sentiment, label, score } = extractSentimentData(result);
-    
-    // Display result
+    const { sentiment, label, score, rawLabel } = extractSentimentData(result); // added rawLabel
+
+    // Display sentiment result
     displaySentimentResult(sentiment, label, score);
-    
-    // Log to Google Sheets (fire-and-forget)
-    logAnalysis(selectedReview, sentiment, label, score);
-    
+
+    // --- BUSINESS LOGIC INTEGRATION ---
+    const action = determineBusinessAction(score, rawLabel);
+    displayBusinessAction(action);
+
+    // Log to Google Sheets with action_taken
+    logAnalysis(selectedReview, sentiment, label, score, action);
+    // ----------------------------------
+
   } catch (error) {
     console.error("Error:", error);
     showError(error.message || "Failed to analyze sentiment.");
@@ -177,38 +318,26 @@ async function analyzeRandomReview() {
 
 // Analyze sentiment using transformers.js
 async function analyzeSentiment(text) {
-  if (!sentimentPipeline) {
-    throw new Error("Sentiment model is not initialized.");
-  }
-
+  if (!sentimentPipeline) throw new Error("Sentiment model is not initialized.");
   const output = await sentimentPipeline(text);
-
-  if (!Array.isArray(output) || output.length === 0) {
-    throw new Error("Invalid sentiment output from local model.");
-  }
-
+  if (!Array.isArray(output) || output.length === 0) throw new Error("Invalid sentiment output.");
   return [output];
 }
 
-// Extract sentiment data from result
+// Extract sentiment data – now also returns rawLabel (original model label)
 function extractSentimentData(result) {
   let sentiment = "neutral";
   let score = 0.5;
   let label = "NEUTRAL";
+  let rawLabel = "NEUTRAL";  // new
 
-  if (
-    Array.isArray(result) &&
-    result.length > 0 &&
-    Array.isArray(result[0]) &&
-    result[0].length > 0
-  ) {
+  if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0]) && result[0].length > 0) {
     const sentimentData = result[0][0];
-
     if (sentimentData && typeof sentimentData === "object") {
-      label = sentimentData.label ? sentimentData.label.toUpperCase() : "NEUTRAL";
+      rawLabel = sentimentData.label || "NEUTRAL";
+      label = rawLabel.toUpperCase();
       score = sentimentData.score || 0.5;
 
-      // Determine sentiment bucket
       if (label === "POSITIVE" && score > 0.5) {
         sentiment = "positive";
       } else if (label === "NEGATIVE" && score > 0.5) {
@@ -219,7 +348,7 @@ function extractSentimentData(result) {
     }
   }
 
-  return { sentiment, label, score };
+  return { sentiment, label, score, rawLabel };
 }
 
 // Display sentiment result
@@ -231,8 +360,8 @@ function displaySentimentResult(sentiment, label, score) {
   `;
 }
 
-// Log analysis to Google Sheets
-async function logAnalysis(review, sentiment, label, score) {
+// Log analysis to Google Sheets – now includes action_taken
+async function logAnalysis(review, sentiment, label, score, action) {
   const userId = getUserId();
   const meta = {
     user_id: userId,
@@ -242,31 +371,27 @@ async function logAnalysis(review, sentiment, label, score) {
     confidence: score,
     user_agent: navigator.userAgent,
     timestamp_iso: new Date().toISOString(),
-    review_length: review.length
+    review_length: review.length,
+    business_decision: action.actionCode   // record which action was triggered
   };
 
   const payload = {
     ts: Date.now(),
-    review: review.substring(0, 5000), // Safe truncation
+    review: review.substring(0, 5000),
     sentiment: `${label} (${(score * 100).toFixed(1)}% confidence)`,
+    action_taken: action.actionCode,      // new column
     meta: meta
   };
 
-  // Send log (fire-and-forget)
-  sendLogSimple(payload).catch(err => {
-    console.error("Background logging error:", err);
-  });
+  sendLogSimple(payload).catch(err => console.error("Background logging error:", err));
 }
 
 // Get appropriate icon for sentiment bucket
 function getSentimentIcon(sentiment) {
   switch (sentiment) {
-    case "positive":
-      return "fa-thumbs-up";
-    case "negative":
-      return "fa-thumbs-down";
-    default:
-      return "fa-question-circle";
+    case "positive": return "fa-thumbs-up";
+    case "negative": return "fa-thumbs-down";
+    default: return "fa-question-circle";
   }
 }
 
